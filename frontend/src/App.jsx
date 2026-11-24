@@ -8,6 +8,15 @@ const FILTERS = [
   ["doctor", "Doctor"],
 ];
 const NO_FILTERS = { ward: "", department: "", doctor: "" };
+const COLUMNS = [
+  ["name", "Name"],
+  ["age", "Age"],
+  ["gender", "Gender"],
+  ["ward", "Ward"],
+  ["department", "Department"],
+  ["doctor", "Doctor"],
+  ["admission_date", "Admitted on"],
+];
 
 export default function App() {
   const [patients, setPatients] = useState([]);
@@ -48,20 +57,12 @@ export default function App() {
 
   async function deletePatient(p) {
     if (!window.confirm(`Delete ${p.name}? This cannot be undone.`)) return;
-    try {
-      await api(`/patients/${p.id}`, "DELETE");
-    } catch (e) {
-      setError(e.message);
-    }
+    await api(`/patients/${p.id}`, "DELETE").catch((e) => setError(e.message));
     loadPatients();
   }
 
   async function dischargePatient(p) {
-    try {
-      await api(`/patients/${p.id}/discharge`, "PATCH");
-    } catch (e) {
-      setError(e.message);
-    }
+    await api(`/patients/${p.id}/discharge`, "PATCH").catch((e) => setError(e.message));
     loadPatients();
   }
 
@@ -125,13 +126,9 @@ export default function App() {
         <table className="table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Age</th>
-              <th>Gender</th>
-              <th>Ward</th>
-              <th>Department</th>
-              <th>Doctor</th>
-              <th>Admitted on</th>
+              {COLUMNS.map(([key, label]) => (
+                <th key={key}>{label}</th>
+              ))}
               <th>Status</th>
               <th></th>
             </tr>
@@ -139,13 +136,11 @@ export default function App() {
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id}>
-                <td data-label="Name" className="name">{p.name}</td>
-                <td data-label="Age">{p.age}</td>
-                <td data-label="Gender">{p.gender}</td>
-                <td data-label="Ward">{p.ward}</td>
-                <td data-label="Department">{p.department}</td>
-                <td data-label="Doctor">{p.doctor}</td>
-                <td data-label="Admitted on">{p.admission_date}</td>
+                {COLUMNS.map(([key, label]) => (
+                  <td key={key} data-label={label}>
+                    {p[key]}
+                  </td>
+                ))}
                 <td data-label="Status">
                   <span className={`badge ${p.status.toLowerCase()}`}>{p.status}</span>
                 </td>

@@ -3,15 +3,16 @@ import re
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 
+import psycopg
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from psycopg.rows import dict_row
 
 from options import OPTIONS
 
-# On Render we set DATABASE_URL to a Postgres database.
-# Locally it's not set, so we just use a SQLite file.
+# Vercel gives us DATABASE_URL (Neon Postgres). Locally it's not set, so we use a SQLite file.
 DATABASE_URL = os.environ.get("DATABASE_URL")
-DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "patients.db"))
+DB_PATH = os.path.join(os.path.dirname(__file__), "patients.db")
 IST = timezone(timedelta(hours=5, minutes=30))
 FIELDS = ["name", "age", "gender", "ward", "department", "doctor", "admission_date", "status"]
 
@@ -21,8 +22,6 @@ CORS(app)
 
 def connect():
     if DATABASE_URL:
-        import psycopg
-        from psycopg.rows import dict_row
         return psycopg.connect(DATABASE_URL, row_factory=dict_row)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -54,11 +53,6 @@ run(f"""CREATE TABLE IF NOT EXISTS patients (
     admission_date TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'Admitted'
 )""")
-
-
-def get_patient(pid):
-    rows = run("SELECT * FROM patients WHERE id = ?", (pid,))
-    return rows[0] if rows else None
 
 
 # keep these rules in sync with frontend/src/validate.js
@@ -122,8 +116,10 @@ def bad_request(errors):
     return jsonify({"message": "; ".join(errors.values()), "errors": errors}), 400
 
 
-def not_found():
-    return jsonify({"message": "Patient not found"}), 404
+def found(rows):
+    if not rows:
+        return jsonify({"message": "Patient not found"}), 404
+    return jsonify(rows[0])
 
 
 @app.get("/")
@@ -156,30 +152,21 @@ def add_patient():
 
 @app.put("/api/patients/<int:pid>")
 def edit_patient(pid):
-    if not get_patient(pid):
-        return not_found()
     patient, errors = validate(request.get_json(silent=True))
     if errors:
         return bad_request(errors)
     columns = ", ".join(f"{f} = ?" for f in FIELDS)
-    run(f"UPDATE patients SET {columns} WHERE id = ?", [patient[f] for f in FIELDS] + [pid])
-    return jsonify(get_patient(pid))
+    return found(run(f"UPDATE patients SET {columns} WHERE id = ? RETURNING *", [patient[f] for f in FIELDS] + [pid]))
 
 
 @app.patch("/api/patients/<int:pid>/discharge")
 def discharge_patient(pid):
-    if not get_patient(pid):
-        return not_found()
-    run("UPDATE patients SET status = 'Discharged' WHERE id = ?", (pid,))
-    return jsonify(get_patient(pid))
+    return found(run("UPDATE patients SET status = 'Discharged' WHERE id = ? RETURNING *", (pid,)))
 
 
 @app.delete("/api/patients/<int:pid>")
 def delete_patient(pid):
-    if not get_patient(pid):
-        return not_found()
-    run("DELETE FROM patients WHERE id = ?", (pid,))
-    return jsonify({"message": "Patient deleted"})
+    return found(run("DELETE FROM patients WHERE id = ? RETURNING *", (pid,)))
 
 
 if __name__ == "__main__":
