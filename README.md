@@ -3,7 +3,7 @@
 Web app for hospital staff to manage admitted patients - add, view, search, filter, edit, discharge and delete.
 
 Live link: _add frontend URL here_
-API: _add backend URL here_
+API: https://patient-admission.vercel.app
 
 ## Tech stack
 
@@ -85,11 +85,7 @@ npm install
 npm run dev
 ```
 
-Runs on http://localhost:5173. By default it calls the backend at `http://localhost:5000`. To change that, create `frontend/.env.local` with:
-
-```
-VITE_API_URL=https://your-backend-url
-```
+Runs on http://localhost:5173 and calls the local backend at http://localhost:5000. The deployed site calls the live backend (set in `frontend/src/api.js`).
 
 ## Deployment
 
@@ -100,12 +96,12 @@ Backend:
 1. Add New -> Project -> import this repo, set root directory to `backend` (Vercel detects Flask)
 2. Deploy, then go to Storage -> Create Database -> Neon (Postgres) and connect it to this project. This adds `DATABASE_URL`.
 3. Redeploy so the backend picks up `DATABASE_URL`
+4. Settings -> Deployment Protection -> turn off Vercel Authentication so the API is public
 
 Frontend:
 
 1. Add New -> Project -> import the same repo, set root directory to `frontend`
-2. Add env variable `VITE_API_URL` = backend URL (no `/` at the end)
-3. Deploy
+2. Deploy (the backend URL is already set in `frontend/src/api.js`)
 
 ## Screenshots
 

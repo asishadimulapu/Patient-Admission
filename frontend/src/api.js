@@ -1,4 +1,7 @@
-const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api";
+// npm run dev -> local backend, deployed site -> live backend on Vercel
+const BACKEND_URL = import.meta.env.DEV ? "http://localhost:5000" : "https://patient-admission.vercel.app";
+
+const BASE_URL = BACKEND_URL + "/api";
 
 export async function api(path, method = "GET", body) {
   const res = await fetch(BASE_URL + path, {
