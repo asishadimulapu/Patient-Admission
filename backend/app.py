@@ -8,6 +8,9 @@ from flask_cors import CORS
 
 from options import OPTIONS
 
+# On Render we set DATABASE_URL to a Postgres database.
+# Locally it's not set, so we just use a SQLite file.
+DATABASE_URL = os.environ.get("DATABASE_URL")
 DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "patients.db"))
 IST = timezone(timedelta(hours=5, minutes=30))
 FIELDS = ["name", "age", "gender", "ward", "department", "doctor", "admission_date", "status"]
@@ -16,19 +19,32 @@ app = Flask(__name__)
 CORS(app)
 
 
-def run(sql, params=()):
+def connect():
+    if DATABASE_URL:
+        import psycopg
+        from psycopg.rows import dict_row
+        return psycopg.connect(DATABASE_URL, row_factory=dict_row)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    return conn
+
+
+def run(sql, params=()):
+    if DATABASE_URL:
+        sql = sql.replace("?", "%s")  # postgres uses %s instead of ?
+    conn = connect()
     try:
         cur = conn.execute(sql, params)
+        rows = [dict(row) for row in cur.fetchall()] if cur.description else []
         conn.commit()
-        return [dict(row) for row in cur.fetchall()], cur.lastrowid
+        return rows
     finally:
         conn.close()
 
 
-run("""CREATE TABLE IF NOT EXISTS patients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+id_column = "id SERIAL PRIMARY KEY" if DATABASE_URL else "id INTEGER PRIMARY KEY AUTOINCREMENT"
+run(f"""CREATE TABLE IF NOT EXISTS patients (
+    {id_column},
     name TEXT NOT NULL,
     age INTEGER NOT NULL,
     gender TEXT NOT NULL,
@@ -41,7 +57,7 @@ run("""CREATE TABLE IF NOT EXISTS patients (
 
 
 def get_patient(pid):
-    rows, _ = run("SELECT * FROM patients WHERE id = ?", (pid,))
+    rows = run("SELECT * FROM patients WHERE id = ?", (pid,))
     return rows[0] if rows else None
 
 
@@ -122,8 +138,7 @@ def options():
 
 @app.get("/api/patients")
 def list_patients():
-    rows, _ = run("SELECT * FROM patients ORDER BY id DESC")
-    return jsonify(rows)
+    return jsonify(run("SELECT * FROM patients ORDER BY id DESC"))
 
 
 @app.post("/api/patients")
@@ -132,11 +147,11 @@ def add_patient():
     if errors:
         return bad_request(errors)
     placeholders = ", ".join("?" for _ in FIELDS)
-    _, new_id = run(
-        f"INSERT INTO patients ({', '.join(FIELDS)}) VALUES ({placeholders})",
+    rows = run(
+        f"INSERT INTO patients ({', '.join(FIELDS)}) VALUES ({placeholders}) RETURNING *",
         [patient[f] for f in FIELDS],
     )
-    return jsonify(get_patient(new_id)), 201
+    return jsonify(rows[0]), 201
 
 
 @app.put("/api/patients/<int:pid>")

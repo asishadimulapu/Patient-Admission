@@ -9,7 +9,7 @@ API: _add backend URL here_
 
 - Frontend: React (Vite), plain CSS
 - Backend: Python, Flask
-- Database: SQLite (stored in a file, so data stays after the server restarts)
+- Database: PostgreSQL (Neon) on the live site, SQLite file when running locally. Both keep data after a server restart.
 
 ## Features
 
@@ -93,24 +93,19 @@ VITE_API_URL=https://your-backend-url
 
 ## Deployment
 
-Backend is on PythonAnywhere (free plan keeps the SQLite file between restarts):
+Both parts are deployed on Vercel as two separate projects from this repo.
 
-1. Open a Bash console, `git clone` the repo and run `pip install --user flask flask-cors`
-2. Web tab -> Add a new web app -> Manual configuration -> Python 3.x
-3. In the WSGI file:
-   ```python
-   import sys
-   sys.path.insert(0, "/home/<username>/<repo-name>/backend")
-   from app import app as application
-   ```
-4. Reload the web app
+Backend:
 
-Frontend is on Vercel:
+1. Add New -> Project -> import this repo, set root directory to `backend` (Vercel detects Flask)
+2. Deploy, then go to Storage -> Create Database -> Neon (Postgres) and connect it to this project. This adds `DATABASE_URL`.
+3. Redeploy so the backend picks up `DATABASE_URL`
 
-1. Import the repo and set root directory to `frontend`
-2. Build command `npm run build`, output directory `dist`
-3. Add env variable `VITE_API_URL=https://<username>.pythonanywhere.com`
-4. Deploy
+Frontend:
+
+1. Add New -> Project -> import the same repo, set root directory to `frontend`
+2. Add env variable `VITE_API_URL` = backend URL (no `/` at the end)
+3. Deploy
 
 ## Screenshots
 
