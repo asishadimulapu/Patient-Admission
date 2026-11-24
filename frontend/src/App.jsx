@@ -149,18 +149,20 @@ export default function App() {
                 <td data-label="Status">
                   <span className={`badge ${p.status.toLowerCase()}`}>{p.status}</span>
                 </td>
-                <td className="row-actions">
-                  {p.status === "Admitted" && (
-                    <button className="btn small" onClick={() => dischargePatient(p)}>
-                      Discharge
+                <td>
+                  <div className="row-actions">
+                    {p.status === "Admitted" && (
+                      <button className="btn small" onClick={() => dischargePatient(p)}>
+                        Discharge
+                      </button>
+                    )}
+                    <button className="btn small ghost" onClick={() => setEditing(p)} disabled={!options}>
+                      Edit
                     </button>
-                  )}
-                  <button className="btn small ghost" onClick={() => setEditing(p)} disabled={!options}>
-                    Edit
-                  </button>
-                  <button className="btn small danger" onClick={() => deletePatient(p)}>
-                    Delete
-                  </button>
+                    <button className="btn small danger" onClick={() => deletePatient(p)}>
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

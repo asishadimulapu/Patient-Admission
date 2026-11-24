@@ -72,21 +72,24 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 .error { color: var(--danger); font-weight: 500; }
 .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-/* Tablet */
-@media (max-width: 900px) {
+/* Tablet - rows become cards, two per line */
+@media (max-width: 960px) {
   .toolbar { grid-template-columns: 1fr 1fr; }
   .toolbar input { grid-column: 1 / -1; }
+
+  .table, .table tr, .table td { display: block; width: 100%; }
+  .table thead { display: none; }
+  .table { background: none; box-shadow: none; overflow: visible; }
+  .table tbody { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .table tr { background: var(--card); border-radius: var(--radius); padding: 8px 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
+  .table td { display: flex; justify-content: space-between; gap: 12px; border: none; padding: 6px 12px; text-align: right; }
+  .table td[data-label]::before { content: attr(data-label); color: var(--muted); font-weight: 500; text-align: left; }
+  .row-actions { justify-content: flex-start; padding-top: 6px; }
 }
 
-/* Mobile - show each row as a card */
+/* Mobile - one card per line */
 @media (max-width: 700px) {
   .toolbar { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
-  .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
-  .table thead { display: none; }
-  .table { background: none; box-shadow: none; }
-  .table tr { background: var(--card); border-radius: var(--radius); margin-bottom: 12px; padding: 8px 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); }
-  .table td { display: flex; justify-content: space-between; gap: 12px; border: none; padding: 6px 12px; }
-  .table td[data-label]::before { content: attr(data-label); color: var(--muted); font-weight: 500; }
-  .table .row-actions { justify-content: flex-start; padding-top: 10px; }
+  .table tbody { grid-template-columns: 1fr; }
 }

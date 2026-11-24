@@ -2,7 +2,7 @@
 
 Web app for hospital staff to manage admitted patients - add, view, search, filter, edit, discharge and delete.
 
-Live link: _add frontend URL here_
+Live link: https://frontend-sigma-swart-79.vercel.app
 API: https://patient-admission.vercel.app
 
 ## Tech stack
@@ -18,7 +18,7 @@ API: https://patient-admission.vercel.app
 - Search by name
 - Filter by ward, department and doctor
 - Mark a patient as discharged
-- Works on mobile, tablet and desktop (on mobile the table turns into cards)
+- Works on mobile, tablet and desktop (on smaller screens the table turns into cards)
 
 ## Validation
 
@@ -105,4 +105,18 @@ Frontend:
 
 ## Screenshots
 
-_add screenshots here_
+Desktop
+
+![Desktop](screenshots/desktop.png)
+
+Validation errors in the add form
+
+![Validation](screenshots/validation.png)
+
+Tablet
+
+![Tablet](screenshots/tablet.png)
+
+Mobile
+
+![Mobile](screenshots/mobile.png)
