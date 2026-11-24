@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { today, validate } from "./validate";
+import { today, validate } from "../utils/validate";
 
 const SELECTS = [
   ["gender", "Gender"],

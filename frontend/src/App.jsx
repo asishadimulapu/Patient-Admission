@@ -1,22 +1,8 @@
 import { useEffect, useState } from "react";
-import { api } from "./api";
-import PatientForm from "./PatientForm";
-
-const FILTERS = [
-  ["ward", "Ward"],
-  ["department", "Department"],
-  ["doctor", "Doctor"],
-];
-const NO_FILTERS = { ward: "", department: "", doctor: "" };
-const COLUMNS = [
-  ["name", "Name"],
-  ["age", "Age"],
-  ["gender", "Gender"],
-  ["ward", "Ward"],
-  ["department", "Department"],
-  ["doctor", "Doctor"],
-  ["admission_date", "Admitted on"],
-];
+import Filters, { FILTERS, NO_FILTERS } from "./components/Filters";
+import PatientForm from "./components/PatientForm";
+import PatientTable from "./components/PatientTable";
+import { api } from "./utils/api";
 
 export default function App() {
   const [patients, setPatients] = useState([]);
@@ -66,11 +52,6 @@ export default function App() {
     loadPatients();
   }
 
-  function clearFilters() {
-    setFilters(NO_FILTERS);
-    setSearch("");
-  }
-
   const admittedCount = patients.filter((p) => p.status === "Admitted").length;
 
   return (
@@ -93,76 +74,26 @@ export default function App() {
         </p>
       )}
 
-      <section className="toolbar">
-        <input
-          type="search"
-          placeholder="Search by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {options &&
-          FILTERS.map(([key, label]) => (
-            <select
-              key={key}
-              value={filters[key]}
-              onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
-            >
-              <option value="">All {label.toLowerCase()}s</option>
-              {options[key].map((o) => (
-                <option key={o}>{o}</option>
-              ))}
-            </select>
-          ))}
-        <button className="btn ghost" onClick={clearFilters}>
-          Clear
-        </button>
-      </section>
+      <Filters
+        options={options}
+        search={search}
+        setSearch={setSearch}
+        filters={filters}
+        setFilters={setFilters}
+      />
 
       {filtered.length === 0 ? (
         <p className="empty">
           {patients.length > 0 ? "No patients match your search." : "No patients yet. Add the first one."}
         </p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              {COLUMNS.map(([key, label]) => (
-                <th key={key}>{label}</th>
-              ))}
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr key={p.id}>
-                {COLUMNS.map(([key, label]) => (
-                  <td key={key} data-label={label}>
-                    {p[key]}
-                  </td>
-                ))}
-                <td data-label="Status">
-                  <span className={`badge ${p.status.toLowerCase()}`}>{p.status}</span>
-                </td>
-                <td>
-                  <div className="row-actions">
-                    {p.status === "Admitted" && (
-                      <button className="btn small" onClick={() => dischargePatient(p)}>
-                        Discharge
-                      </button>
-                    )}
-                    <button className="btn small ghost" onClick={() => setEditing(p)} disabled={!options}>
-                      Edit
-                    </button>
-                    <button className="btn small danger" onClick={() => deletePatient(p)}>
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <PatientTable
+          patients={filtered}
+          canEdit={!!options}
+          onEdit={setEditing}
+          onDelete={deletePatient}
+          onDischarge={dischargePatient}
+        />
       )}
 
       {editing && options && (

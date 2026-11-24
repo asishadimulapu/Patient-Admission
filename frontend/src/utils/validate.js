@@ -1,4 +1,4 @@
-// same rules as validate() in backend/app.py
+// same rules as validate() in backend/validation.py
 
 // today's date in India time, as YYYY-MM-DD
 export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });

@@ -39,15 +39,21 @@ If the backend gets bad data it returns `400` with a message, for example:
 
 ```
 backend/
-  app.py            routes, validation, database
-  options.py        dropdown values (wards, doctors etc.)
+  app.py              API routes
+  db.py               database connection and table setup
+  validation.py       validation rules
+  options.py          dropdown values (wards, doctors etc.)
   requirements.txt
-frontend/
-  src/App.jsx           patient list, search, filters
-  src/PatientForm.jsx   add / edit form
-  src/validate.js       frontend validation
-  src/api.js            fetch helper
-  src/styles.css
+frontend/src/
+  App.jsx             page state and API calls
+  components/
+    Filters.jsx       search box and filters
+    PatientTable.jsx  patient list
+    PatientForm.jsx   add / edit form
+  utils/
+    api.js            fetch helper
+    validate.js       frontend validation
+  styles.css
 ```
 
 To add a new ward, doctor or department, just edit `backend/options.py`. The frontend loads the lists from `/api/options`, so nothing else needs to change.
