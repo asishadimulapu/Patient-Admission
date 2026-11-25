@@ -1,20 +1,32 @@
-// npm run dev -> local backend, deployed site -> live backend on Vercel
+// local backend during npm run dev, live backend after build
 const BACKEND_URL = import.meta.env.DEV ? "http://localhost:5000" : "https://patient-admission.vercel.app";
+const API_URL = BACKEND_URL + "/api";
 
-const BASE_URL = BACKEND_URL + "/api";
+export async function api(path, method = "GET", body = null) {
+  const requestOptions = { method, headers: {} };
+  if (body) {
+    requestOptions.headers["Content-Type"] = "application/json";
+    requestOptions.body = JSON.stringify(body);
+  }
 
-export async function api(path, method = "GET", body) {
-  const res = await fetch(BASE_URL + path, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
+  let response;
+  try {
+    response = await fetch(API_URL + path, requestOptions);
+  } catch {
+    throw new Error("Could not connect to the server. Please try again.");
+  }
 
-  if (!res.ok) {
-    const err = new Error(data.message || "Something went wrong");
-    err.errors = data.errors || {};
-    throw err;
+  let data = {};
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    const error = new Error(data.message || "Something went wrong");
+    error.errors = data.errors || {};
+    throw error;
   }
   return data;
 }

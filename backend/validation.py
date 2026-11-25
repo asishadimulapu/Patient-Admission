@@ -3,11 +3,12 @@ from datetime import date, datetime, timedelta, timezone
 
 from options import OPTIONS
 
-IST = timezone(timedelta(hours=5, minutes=30))
+INDIA_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
+AGE_ERROR = "Age must be a whole number between 0 and 120"
 
 
-# keep these rules in sync with frontend/src/utils/validate.js
-def validate(data):
+# same rules are in frontend/src/utils/validate.js
+def validate_patient(data):
     if not isinstance(data, dict):
         return None, {"body": "Request body must be a JSON object"}
 
@@ -15,49 +16,62 @@ def validate(data):
     patient = {}
 
     name = str(data.get("name") or "").strip()
-    if not name:
+    if name == "":
         errors["name"] = "Name is required"
     elif not re.fullmatch(r"[A-Za-z ]+", name):
         errors["name"] = "Name must contain letters only"
-    patient["name"] = " ".join(name.split())
+    else:
+        patient["name"] = " ".join(name.split())
 
+    # 45, "45" and 45.0 are all fine
     age = data.get("age")
     if age is None or str(age).strip() == "":
         errors["age"] = "Age is required"
+    elif isinstance(age, bool):
+        errors["age"] = AGE_ERROR
     else:
         try:
-            num = float(age)
+            age_number = float(age)
         except (TypeError, ValueError):
-            num = -1
-        if isinstance(age, bool) or not num.is_integer() or not 0 <= num <= 120:
-            errors["age"] = "Age must be a whole number between 0 and 120"
+            errors["age"] = AGE_ERROR
         else:
-            patient["age"] = int(num)
+            if not age_number.is_integer() or age_number < 0 or age_number > 120:
+                errors["age"] = AGE_ERROR
+            else:
+                patient["age"] = int(age_number)
 
     for field in ["gender", "ward", "department", "doctor"]:
+        label = field.capitalize()
         value = data.get(field)
         if not value:
-            errors[field] = f"{field.capitalize()} is required"
+            errors[field] = f"{label} is required"
         elif value not in OPTIONS[field]:
-            errors[field] = f"{field.capitalize()} must be one of: {', '.join(OPTIONS[field])}"
-        patient[field] = value
+            errors[field] = f"{label} must be one of: {', '.join(OPTIONS[field])}"
+        else:
+            patient[field] = value
 
-    adm = str(data.get("admission_date") or "").strip()
-    if not adm:
+    admission_date = str(data.get("admission_date") or "").strip()
+    if admission_date == "":
         errors["admission_date"] = "Admission date is required"
-    elif not re.fullmatch(r"\d{4}-\d{2}-\d{2}", adm):
+    elif not re.fullmatch(r"\d{4}-\d{2}-\d{2}", admission_date):
         errors["admission_date"] = "Admission date must be in YYYY-MM-DD format"
     else:
         try:
-            if date.fromisoformat(adm) > datetime.now(IST).date():
-                errors["admission_date"] = "Admission date cannot be in the future"
+            parsed_date = date.fromisoformat(admission_date)
         except ValueError:
             errors["admission_date"] = "Admission date is not a valid date"
-    patient["admission_date"] = adm
+        else:
+            # server runs in UTC, so check against today's date in India
+            today_in_india = datetime.now(INDIA_TIMEZONE).date()
+            if parsed_date > today_in_india:
+                errors["admission_date"] = "Admission date cannot be in the future"
+            else:
+                patient["admission_date"] = admission_date
 
     status = data.get("status") or "Admitted"
     if status not in OPTIONS["status"]:
         errors["status"] = "Status must be Admitted or Discharged"
-    patient["status"] = status
+    else:
+        patient["status"] = status
 
     return patient, errors

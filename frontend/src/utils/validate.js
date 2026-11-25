@@ -1,27 +1,54 @@
-// same rules as validate() in backend/validation.py
+// keep these rules the same as backend/validation.py
 
-// today's date in India time, as YYYY-MM-DD
-export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+const AGE_ERROR = "Age must be a whole number between 0 and 120";
 
-export function validate(p, options) {
+// en-CA gives the date as YYYY-MM-DD
+export function getTodayInIndia() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+export function validatePatient(patient, options) {
   const errors = {};
 
-  const name = (p.name || "").trim();
-  if (!name) errors.name = "Name is required";
-  else if (!/^[A-Za-z ]+$/.test(name)) errors.name = "Name must contain letters only";
-
-  const age = String(p.age ?? "").trim();
-  if (age === "") errors.age = "Age is required";
-  else if (!/^\d+$/.test(age) || Number(age) > 120) errors.age = "Age must be a whole number between 0 and 120";
-
-  for (const field of ["gender", "ward", "department", "doctor", "status"]) {
-    const label = field[0].toUpperCase() + field.slice(1);
-    if (!p[field]) errors[field] = `${label} is required`;
-    else if (!options[field].includes(p[field])) errors[field] = `Please choose a ${field} from the list`;
+  const name = patient.name.trim();
+  if (name === "") {
+    errors.name = "Name is required";
+  } else if (!/^[A-Za-z ]+$/.test(name)) {
+    errors.name = "Name must contain letters only";
   }
 
-  if (!p.admission_date) errors.admission_date = "Admission date is required";
-  else if (p.admission_date > today()) errors.admission_date = "Admission date cannot be in the future";
+  const age = String(patient.age).trim();
+  if (age === "") {
+    errors.age = "Age is required";
+  } else {
+    const ageNumber = Number(age);
+    if (!Number.isInteger(ageNumber) || ageNumber < 0 || ageNumber > 120) {
+      errors.age = AGE_ERROR;
+    }
+  }
+
+  for (const field of ["gender", "ward", "department", "doctor"]) {
+    const label = field.charAt(0).toUpperCase() + field.slice(1);
+    const value = patient[field];
+    if (!value) {
+      errors[field] = `${label} is required`;
+    } else if (!options[field].includes(value)) {
+      errors[field] = `${label} must be one of: ${options[field].join(", ")}`;
+    }
+  }
+
+  const admissionDate = patient.admission_date;
+  if (!admissionDate) {
+    errors.admission_date = "Admission date is required";
+  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(admissionDate)) {
+    errors.admission_date = "Admission date must be in YYYY-MM-DD format";
+  } else if (admissionDate > getTodayInIndia()) {
+    errors.admission_date = "Admission date cannot be in the future";
+  }
+
+  if (!options.status.includes(patient.status)) {
+    errors.status = "Status must be Admitted or Discharged";
+  }
 
   return errors;
 }

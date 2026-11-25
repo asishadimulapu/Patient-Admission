@@ -3,25 +3,18 @@ import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from db import create_table, run
+from db import create_table, run_query
 from options import OPTIONS
-from validation import validate
-
-FIELDS = ["name", "age", "gender", "ward", "department", "doctor", "admission_date", "status"]
+from validation import validate_patient
 
 app = Flask(__name__)
 CORS(app)
 create_table()
 
 
-def bad_request(errors):
-    return jsonify({"message": "; ".join(errors.values()), "errors": errors}), 400
-
-
-def found(rows):
-    if not rows:
-        return jsonify({"message": "Patient not found"}), 404
-    return jsonify(rows[0])
+def validation_error(errors):
+    message = "; ".join(errors.values())
+    return jsonify({"message": message, "errors": errors}), 400
 
 
 @app.get("/")
@@ -30,45 +23,90 @@ def home():
 
 
 @app.get("/api/options")
-def options():
+def get_options():
     return jsonify(OPTIONS)
 
 
 @app.get("/api/patients")
-def list_patients():
-    return jsonify(run("SELECT * FROM patients ORDER BY id DESC"))
+def get_patients():
+    patients = run_query("SELECT * FROM patients ORDER BY id DESC")
+    return jsonify(patients)
 
 
 @app.post("/api/patients")
 def add_patient():
-    patient, errors = validate(request.get_json(silent=True))
+    patient, errors = validate_patient(request.get_json(silent=True))
     if errors:
-        return bad_request(errors)
-    placeholders = ", ".join("?" for _ in FIELDS)
-    rows = run(
-        f"INSERT INTO patients ({', '.join(FIELDS)}) VALUES ({placeholders}) RETURNING *",
-        [patient[f] for f in FIELDS],
+        return validation_error(errors)
+
+    rows = run_query(
+        """
+        INSERT INTO patients (name, age, gender, ward, department, doctor, admission_date, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING *
+        """,
+        (
+            patient["name"],
+            patient["age"],
+            patient["gender"],
+            patient["ward"],
+            patient["department"],
+            patient["doctor"],
+            patient["admission_date"],
+            patient["status"],
+        ),
     )
     return jsonify(rows[0]), 201
 
 
-@app.put("/api/patients/<int:pid>")
-def edit_patient(pid):
-    patient, errors = validate(request.get_json(silent=True))
+@app.put("/api/patients/<int:patient_id>")
+def update_patient(patient_id):
+    patient, errors = validate_patient(request.get_json(silent=True))
     if errors:
-        return bad_request(errors)
-    columns = ", ".join(f"{f} = ?" for f in FIELDS)
-    return found(run(f"UPDATE patients SET {columns} WHERE id = ? RETURNING *", [patient[f] for f in FIELDS] + [pid]))
+        return validation_error(errors)
+
+    rows = run_query(
+        """
+        UPDATE patients
+        SET name = ?, age = ?, gender = ?, ward = ?, department = ?,
+            doctor = ?, admission_date = ?, status = ?
+        WHERE id = ?
+        RETURNING *
+        """,
+        (
+            patient["name"],
+            patient["age"],
+            patient["gender"],
+            patient["ward"],
+            patient["department"],
+            patient["doctor"],
+            patient["admission_date"],
+            patient["status"],
+            patient_id,
+        ),
+    )
+    if not rows:
+        return jsonify({"message": "Patient not found"}), 404
+    return jsonify(rows[0])
 
 
-@app.patch("/api/patients/<int:pid>/discharge")
-def discharge_patient(pid):
-    return found(run("UPDATE patients SET status = 'Discharged' WHERE id = ? RETURNING *", (pid,)))
+@app.patch("/api/patients/<int:patient_id>/discharge")
+def discharge_patient(patient_id):
+    rows = run_query(
+        "UPDATE patients SET status = 'Discharged' WHERE id = ? RETURNING *",
+        (patient_id,),
+    )
+    if not rows:
+        return jsonify({"message": "Patient not found"}), 404
+    return jsonify(rows[0])
 
 
-@app.delete("/api/patients/<int:pid>")
-def delete_patient(pid):
-    return found(run("DELETE FROM patients WHERE id = ? RETURNING *", (pid,)))
+@app.delete("/api/patients/<int:patient_id>")
+def delete_patient(patient_id):
+    rows = run_query("DELETE FROM patients WHERE id = ? RETURNING id", (patient_id,))
+    if not rows:
+        return jsonify({"message": "Patient not found"}), 404
+    return jsonify({"message": "Patient deleted"})
 
 
 if __name__ == "__main__":

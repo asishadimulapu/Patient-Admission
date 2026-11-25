@@ -1,38 +1,34 @@
-export const FILTERS = [
-  ["ward", "Ward"],
-  ["department", "Department"],
-  ["doctor", "Doctor"],
+const FILTER_FIELDS = [
+  ["ward", "All wards"],
+  ["department", "All departments"],
+  ["doctor", "All doctors"],
 ];
-export const NO_FILTERS = { ward: "", department: "", doctor: "" };
 
-export default function Filters({ options, search, setSearch, filters, setFilters }) {
-  function clearAll() {
-    setFilters(NO_FILTERS);
-    setSearch("");
-  }
-
+export default function Filters({ options, search, filters, onSearchChange, onFilterChange, onClear }) {
   return (
     <section className="toolbar">
       <input
         type="search"
         placeholder="Search by name..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(event) => onSearchChange(event.target.value)}
       />
+
       {options &&
-        FILTERS.map(([key, label]) => (
+        FILTER_FIELDS.map(([field, allLabel]) => (
           <select
-            key={key}
-            value={filters[key]}
-            onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
+            key={field}
+            value={filters[field]}
+            onChange={(event) => onFilterChange(field, event.target.value)}
           >
-            <option value="">All {label.toLowerCase()}s</option>
-            {options[key].map((o) => (
-              <option key={o}>{o}</option>
+            <option value="">{allLabel}</option>
+            {options[field].map((option) => (
+              <option key={option}>{option}</option>
             ))}
           </select>
         ))}
-      <button className="btn ghost" onClick={clearAll}>
+
+      <button className="btn ghost" onClick={onClear}>
         Clear
       </button>
     </section>

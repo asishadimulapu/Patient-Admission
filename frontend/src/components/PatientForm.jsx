@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { today, validate } from "../utils/validate";
+import { getTodayInIndia, validatePatient } from "../utils/validate";
 
-const SELECTS = [
+const SELECT_FIELDS = [
   ["gender", "Gender"],
   ["ward", "Ward"],
   ["department", "Department"],
   ["doctor", "Doctor"],
-  ["status", "Status"],
 ];
 
 function Field({ label, error, children }) {
@@ -20,68 +19,91 @@ function Field({ label, error, children }) {
 }
 
 export default function PatientForm({ patient, options, onSave, onClose }) {
-  const [form, setForm] = useState({
+  const emptyForm = {
     name: "",
     age: "",
     gender: "",
     ward: "",
     department: "",
     doctor: "",
-    admission_date: today(),
+    admission_date: getTodayInIndia(),
     status: "Admitted",
-    ...patient,
-  });
+  };
+  const [form, setForm] = useState(patient ? { ...patient } : emptyForm);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const handleChange = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setForm({ ...form, [name]: value });
+  }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const errs = validate(form, options);
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const formErrors = validatePatient(form, options);
+    setErrors(formErrors);
+    if (Object.keys(formErrors).length > 0) {
+      return;
+    }
 
     setSaving(true);
     try {
       await onSave(form);
-    } catch (err) {
-      setErrors({ ...err.errors, form: err.message });
+    } catch (error) {
+      setErrors({ ...error.errors, form: error.message });
       setSaving(false);
     }
   }
 
+  // only close when the dark background is clicked, not the form itself
+  function handleOverlayMouseDown(event) {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  }
+
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="overlay" onMouseDown={handleOverlayMouseDown}>
       <form className="modal" onSubmit={handleSubmit} noValidate>
-        <h2>{patient.id ? "Edit patient" : "Add patient"}</h2>
+        <h2>{patient ? "Edit patient" : "Add patient"}</h2>
         {errors.form && <p className="alert">{errors.form}</p>}
 
         <div className="grid">
           <Field label="Name" error={errors.name}>
-            <input value={form.name} onChange={handleChange("name")} placeholder="e.g. Ravi Kumar" autoFocus />
-          </Field>
-          <Field label="Age" error={errors.age}>
-            <input type="number" min="0" max="120" value={form.age} onChange={handleChange("age")} />
+            <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Ravi Kumar" autoFocus />
           </Field>
 
-          {SELECTS.map(([key, label]) => (
-            <Field key={key} label={label} error={errors[key]}>
-              <select value={form[key]} onChange={handleChange(key)}>
+          <Field label="Age" error={errors.age}>
+            <input name="age" type="number" min="0" max="120" value={form.age} onChange={handleChange} />
+          </Field>
+
+          {SELECT_FIELDS.map(([field, label]) => (
+            <Field key={field} label={label} error={errors[field]}>
+              <select name={field} value={form[field]} onChange={handleChange}>
                 <option value="">Select {label.toLowerCase()}</option>
-                {options[key].map((o) => (
-                  <option key={o}>{o}</option>
+                {options[field].map((option) => (
+                  <option key={option}>{option}</option>
                 ))}
               </select>
             </Field>
           ))}
 
+          <Field label="Status" error={errors.status}>
+            <select name="status" value={form.status} onChange={handleChange}>
+              {options.status.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Admission date" error={errors.admission_date}>
             <input
+              name="admission_date"
               type="date"
-              max={today()}
+              max={getTodayInIndia()}
               value={form.admission_date}
-              onChange={handleChange("admission_date")}
+              onChange={handleChange}
             />
           </Field>
         </div>
@@ -90,7 +112,7 @@ export default function PatientForm({ patient, options, onSave, onClose }) {
           <button type="button" className="btn ghost" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" disabled={saving}>
+          <button type="submit" className="btn primary" disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
