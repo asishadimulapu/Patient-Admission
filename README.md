@@ -13,23 +13,25 @@ API: https://patient-admission.vercel.app
 
 ## Features
 
-- Add / edit / delete patients (delete asks for confirmation)
-- List of all patients with total, admitted and discharged counts
-- Search by name
-- Filter by ward, department and doctor
-- Mark a patient as discharged
-- Works on mobile, tablet and desktop (on smaller screens the table turns into cards)
+1. Add a patient
+2. View the list of all patients (with total, admitted and discharged counts)
+3. Filter by ward, department and doctor
+4. Search patients by name
+5. Edit a patient
+6. Delete a patient (asks for confirmation first)
+7. Mark a patient as discharged
+8. Works on mobile, tablet and desktop (on smaller screens the table turns into cards)
 
 ## Validation
 
-Same rules are checked in the frontend and the backend:
+Same rules are checked in the frontend (`frontend/src/utils/validate.js`) and the backend (`backend/validation.py`):
 
 - Name - required, letters only (spaces allowed between words)
 - Age - required, whole number from 0 to 120
 - Gender, Ward, Department, Doctor - required, must be one of the given options
 - Admission date - required, can't be a future date
 
-If the backend gets bad data it returns `400` with a message, for example:
+If the backend gets bad data it rejects it with `400` and a clear message, for example:
 
 ```json
 { "message": "Age must be a whole number between 0 and 120", "errors": { "age": "..." } }
@@ -91,7 +93,7 @@ npm install
 npm run dev
 ```
 
-Runs on http://localhost:5173 and calls the local backend at http://localhost:5000. The deployed site calls the live backend (set in `frontend/src/api.js`).
+Runs on http://localhost:5173 and calls the local backend at http://localhost:5000. The deployed site calls the live backend (set in `frontend/src/utils/api.js`).
 
 ## Deployment
 
@@ -107,7 +109,7 @@ Backend:
 Frontend:
 
 1. Add New -> Project -> import the same repo, set root directory to `frontend`
-2. Deploy (the backend URL is already set in `frontend/src/api.js`)
+2. Deploy (the backend URL is already set in `frontend/src/utils/api.js`)
 
 ## Screenshots
 
